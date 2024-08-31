@@ -132,10 +132,11 @@ struct CardDeckPageView: View {
     
     func xOffset(for index: Int) -> Double {
         let padding = containerSize.width / 10
-        let x = (Double(index) - progressIndex) * padding
-        let maxIndex = pages.count - 1
-        // position > 0 && position < 0.99 && index < maxIndex
-        if index == selectedIndex && progressIndex < Double(maxIndex) && progressIndex > 0 {
+        let maxIndex = Double(pages.count - 1)
+        let clampedProgressIndex = max(0, min(progressIndex, maxIndex))
+        let x = (Double(index) - clampedProgressIndex) * padding
+        
+        if index == selectedIndex && clampedProgressIndex < maxIndex && clampedProgressIndex > 0 {
             return x * swingOutMultiplier
         }
         return x
@@ -146,19 +147,24 @@ struct CardDeckPageView: View {
     }
     
     func scale(for index: Int) -> CGFloat {
-        return 1.0 - (0.1 * abs(currentPosition(for: index)))
+        let maxIndex = Double(pages.count - 1)
+        let clampedProgressIndex = max(0, min(progressIndex, maxIndex))
+        return 1.0 - (0.1 * abs(Double(index) - clampedProgressIndex))
     }
     
     func rotation(for index: Int) -> Double {
-        return -currentPosition(for: index) * 2
+        let maxIndex = Double(pages.count - 1)
+        let clampedProgressIndex = max(0, min(progressIndex, maxIndex))
+        return -(Double(index) - clampedProgressIndex) * 2
     }
     
     func shadow(for index: Int) -> Color {
         guard shadowDisabled == false else {
             return .clear
         }
-        let index = Double(index)
-        let progress = 1.0 - abs(progressIndex - index)
+        let maxIndex = Double(pages.count - 1)
+        let clampedProgressIndex = max(0, min(progressIndex, maxIndex))
+        let progress = 1.0 - abs(clampedProgressIndex - Double(index))
         let opacity = 0.3 * progress
         return .black.opacity(opacity)
     }
