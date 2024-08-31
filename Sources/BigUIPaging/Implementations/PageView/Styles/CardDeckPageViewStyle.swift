@@ -81,7 +81,13 @@ struct CardDeckPageView: View {
     var dragGesture: some Gesture {
         DragGesture(minimumDistance: 25)
             .onChanged { value in
-                self.dragProgress = -(value.translation.width / containerSize.width)
+                let newProgress = -(value.translation.width / containerSize.width)
+                // Prevent left swipe if at the last card
+                if selectedIndex == pages.count - 1 && newProgress > 0 {
+                    self.dragProgress = 0
+                } else {
+                    self.dragProgress = newProgress
+                }
             }
             .onEnded { value in
                 snapToNearestIndex()
@@ -96,9 +102,16 @@ struct CardDeckPageView: View {
             }
         } else {
             let direction = dragProgress < 0 ? -1 : 1
-            withAnimation(.smooth(duration: 0.25)) {
-                go(to: selectedIndex + direction)
-                self.dragProgress = 0.0
+            // Prevent moving right if at the last card
+            if !(selectedIndex == pages.count - 1 && direction == 1) {
+                withAnimation(.smooth(duration: 0.25)) {
+                    go(to: selectedIndex + direction)
+                    self.dragProgress = 0.0
+                }
+            } else {
+                withAnimation(.bouncy) {
+                    self.dragProgress = 0.0
+                }
             }
         }
     }
@@ -132,11 +145,10 @@ struct CardDeckPageView: View {
     
     func xOffset(for index: Int) -> Double {
         let padding = containerSize.width / 10
-        let maxIndex = Double(pages.count - 1)
-        let clampedProgressIndex = max(0, min(progressIndex, maxIndex))
-        let x = (Double(index) - clampedProgressIndex) * padding
-        
-        if index == selectedIndex && clampedProgressIndex < maxIndex && clampedProgressIndex > 0 {
+        let x = (Double(index) - progressIndex) * padding
+        let maxIndex = pages.count - 1
+        // position > 0 && position < 0.99 && index < maxIndex
+        if index == selectedIndex && progressIndex < Double(maxIndex) && progressIndex > 0 {
             return x * swingOutMultiplier
         }
         return x
@@ -147,24 +159,19 @@ struct CardDeckPageView: View {
     }
     
     func scale(for index: Int) -> CGFloat {
-        let maxIndex = Double(pages.count - 1)
-        let clampedProgressIndex = max(0, min(progressIndex, maxIndex))
-        return 1.0 - (0.1 * abs(Double(index) - clampedProgressIndex))
+        return 1.0 - (0.1 * abs(currentPosition(for: index)))
     }
     
     func rotation(for index: Int) -> Double {
-        let maxIndex = Double(pages.count - 1)
-        let clampedProgressIndex = max(0, min(progressIndex, maxIndex))
-        return -(Double(index) - clampedProgressIndex) * 2
+        return -currentPosition(for: index) * 2
     }
     
     func shadow(for index: Int) -> Color {
         guard shadowDisabled == false else {
             return .clear
         }
-        let maxIndex = Double(pages.count - 1)
-        let clampedProgressIndex = max(0, min(progressIndex, maxIndex))
-        let progress = 1.0 - abs(clampedProgressIndex - Double(index))
+        let index = Double(index)
+        let progress = 1.0 - abs(progressIndex - index)
         let opacity = 0.3 * progress
         return .black.opacity(opacity)
     }
