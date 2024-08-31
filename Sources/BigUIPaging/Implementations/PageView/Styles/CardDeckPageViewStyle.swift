@@ -81,13 +81,7 @@ struct CardDeckPageView: View {
     var dragGesture: some Gesture {
         DragGesture(minimumDistance: 25)
             .onChanged { value in
-                let newProgress = -(value.translation.width / containerSize.width)
-                // Prevent left swipe if at the last card
-                if selectedIndex == pages.count - 1 && newProgress > 0 {
-                    self.dragProgress = 0
-                } else {
-                    self.dragProgress = newProgress
-                }
+                self.dragProgress = -(value.translation.width / containerSize.width)
             }
             .onEnded { value in
                 snapToNearestIndex()
@@ -102,16 +96,9 @@ struct CardDeckPageView: View {
             }
         } else {
             let direction = dragProgress < 0 ? -1 : 1
-            // Prevent moving right if at the last card
-            if !(selectedIndex == pages.count - 1 && direction == 1) {
-                withAnimation(.smooth(duration: 0.25)) {
-                    go(to: selectedIndex + direction)
-                    self.dragProgress = 0.0
-                }
-            } else {
-                withAnimation(.bouncy) {
-                    self.dragProgress = 0.0
-                }
+            withAnimation(.smooth(duration: 0.25)) {
+                go(to: selectedIndex + direction)
+                self.dragProgress = 0.0
             }
         }
     }
